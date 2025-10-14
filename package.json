@@ -1,0 +1,49 @@
+{
+  "name": "oracle-ai-bot",
+  "version": "1.0.0",
+  "description": "ORACLE - The most advanced Discord moderation and community management bot - Created by Peksity",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "jest",
+    "deploy": "node deploy-commands.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "gta",
+    "moderation",
+    "ai",
+    "vice-city"
+  ],
+  "author": "Peksity",
+  "license": "PROPRIETARY",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.3.1",
+    "mysql2": "^3.6.5",
+    "openai": "^4.20.1",
+    "axios": "^1.6.2",
+    "cheerio": "^1.0.0-rc.12",
+    "moment": "^2.29.4",
+    "node-cron": "^3.0.3",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "bcrypt": "^5.1.1",
+    "redis": "^4.6.11",
+    "winston": "^3.11.0",
+    "sharp": "^0.33.1",
+    "canvas": "^2.11.2",
+    "chart.js": "^4.4.1",
+    "luxon": "^3.4.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "eslint": "^8.55.0"
+  }
+}
