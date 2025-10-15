@@ -102,7 +102,9 @@ client.config = {
 const loadHandlers = () => {
   console.log('📂 Loading handlers...');
   
-  const handlers = ['commands', 'events', 'database', 'ai', 'monitoring'];
+  // Temporarily removed 'database' from handlers to get bot online first
+  // We'll add database back later once connection issues are fixed
+  const handlers = ['commands', 'events', 'ai', 'monitoring'];
   
   for (const handler of handlers) {
     const handlerPath = path.join(__dirname, 'handlers', `${handler}.js`);
