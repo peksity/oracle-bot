@@ -37,9 +37,9 @@ module.exports = (client) => {
         return;
       }
       
-      // Call OpenAI
+      // Call OpenAI with gpt-3.5-turbo
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4',
+        model: 'gpt-3.5-turbo',
         messages: [
           {
             role: 'system',
