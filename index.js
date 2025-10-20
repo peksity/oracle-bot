@@ -55,9 +55,28 @@ console.log(`
 
 // Debug environment variables
 console.log('🔍 Checking environment variables...');
-console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
 console.log('DISCORD_TOKEN exists:', !!process.env.DISCORD_TOKEN);
 console.log('OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
+console.log('DB_HOST exists:', !!process.env.DB_HOST);
+console.log('DB_USER exists:', !!process.env.DB_USER);
+console.log('DB_PASSWORD exists:', !!process.env.DB_PASSWORD);
+console.log('DB_NAME exists:', !!process.env.DB_NAME);
+
+// Validate critical environment variables
+const criticalVars = ['DISCORD_TOKEN', 'OPENAI_API_KEY', 'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
+const missingVars = criticalVars.filter(v => !process.env[v]);
+
+if (missingVars.length > 0) {
+  console.error(`\n❌ CRITICAL: Missing environment variables: ${missingVars.join(', ')}`);
+  console.error('⚠️  Update your .env file with all required variables!');
+  console.error('📄 Required variables:');
+  console.error('   - DISCORD_TOKEN');
+  console.error('   - OPENAI_API_KEY');
+  console.error('   - DB_HOST');
+  console.error('   - DB_USER');
+  console.error('   - DB_PASSWORD');
+  console.error('   - DB_NAME\n');
+}
 
 // Create Discord client with all necessary intents
 const client = new Client({
@@ -100,11 +119,10 @@ client.config = {
 // ═══════════════════════════════════════════════════════════════
 
 const loadHandlers = () => {
-  console.log('📂 Loading handlers...');
+  console.log('\n📂 Loading handlers...');
   
-  // Temporarily removed 'database' from handlers to get bot online first
-  // We'll add database back later once connection issues are fixed
-  const handlers = ['commands', 'events', 'ai', 'monitoring'];
+  // Load all handlers in order
+  const handlers = ['database', 'commands', 'events', 'ai', 'monitoring'];
   
   for (const handler of handlers) {
     const handlerPath = path.join(__dirname, 'handlers', `${handler}.js`);
@@ -121,7 +139,7 @@ const loadHandlers = () => {
     }
   }
   
-  console.log('✅ Handler loading complete!');
+  console.log('✅ Handler loading complete!\n');
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -191,7 +209,7 @@ console.log('🔐 Attempting to login...');
 // Login to Discord
 client.login(process.env.DISCORD_TOKEN)
   .then(() => {
-    console.log('🔐 Authentication successful!');
+    console.log('✅ Authentication successful!');
   })
   .catch((error) => {
     console.error('❌ Failed to login:', error);

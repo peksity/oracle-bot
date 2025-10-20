@@ -58,14 +58,24 @@ module.exports = async (client) => {
     };
     
   } catch (error) {
-    console.error('❌ Database initialization failed:', error.message);
+    console.error('⚠️  Database connection failed:', error.message);
+    console.error('📝 Note: Bot will continue running without database (local testing mode)');
     console.error('Environment variables check:');
     console.error('- MYSQL_HOST:', process.env.MYSQL_HOST ? '✅' : '❌');
     console.error('- MYSQL_PORT:', process.env.MYSQL_PORT ? '✅' : '❌');
     console.error('- MYSQL_USER:', process.env.MYSQL_USER ? '✅' : '❌');
     console.error('- MYSQL_PASSWORD:', process.env.MYSQL_PASSWORD ? '✅' : '❌');
     console.error('- MYSQL_DATABASE:', process.env.MYSQL_DATABASE ? '✅' : '❌');
-    process.exit(1);
+    console.error('⚠️  Database features will be unavailable until connection is fixed\n');
+    
+    // Store empty db object so code doesn't crash if something tries to use it
+    client.db = {
+      query: async () => { throw new Error('Database not connected'); },
+      getConnection: async () => { throw new Error('Database not connected'); },
+      pool: null
+    };
+    
+    // DON'T exit - continue running for local testing
   }
 };
 
@@ -123,7 +133,6 @@ async function initializeSchema() {
   console.log('📊 Checking and creating database schema...');
   
   const schemaSQL = `
-    -- Server Configuration
     CREATE TABLE IF NOT EXISTS server_configs (
         server_id VARCHAR(255) PRIMARY KEY,
         setup_complete BOOLEAN DEFAULT FALSE,
@@ -137,7 +146,6 @@ async function initializeSchema() {
         INDEX idx_server_id (server_id)
     );
 
-    -- User Leveling & Experience
     CREATE TABLE IF NOT EXISTS user_xp (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id VARCHAR(255) NOT NULL,
@@ -155,7 +163,6 @@ async function initializeSchema() {
         INDEX idx_xp (xp)
     );
 
-    -- User Economy (Money/Items)
     CREATE TABLE IF NOT EXISTS user_economy (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id VARCHAR(255) NOT NULL,
@@ -172,7 +179,6 @@ async function initializeSchema() {
         INDEX idx_balance (balance)
     );
 
-    -- User Inventory
     CREATE TABLE IF NOT EXISTS user_inventory (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id VARCHAR(255) NOT NULL,
@@ -184,7 +190,6 @@ async function initializeSchema() {
         INDEX idx_item_name (item_name)
     );
 
-    -- Moderation Logs
     CREATE TABLE IF NOT EXISTS mod_logs (
         id INT AUTO_INCREMENT PRIMARY KEY,
         server_id VARCHAR(255) NOT NULL,
@@ -200,7 +205,6 @@ async function initializeSchema() {
         INDEX idx_created_at (created_at)
     );
 
-    -- User Warnings
     CREATE TABLE IF NOT EXISTS user_warnings (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id VARCHAR(255) NOT NULL,
@@ -212,7 +216,6 @@ async function initializeSchema() {
         INDEX idx_created_at (created_at)
     );
 
-    -- Premium Subscriptions
     CREATE TABLE IF NOT EXISTS subscriptions (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id VARCHAR(255) NOT NULL,
@@ -234,7 +237,6 @@ async function initializeSchema() {
         INDEX idx_trial_ends (trial_ends)
     );
 
-    -- Trial Reminders (track which reminders sent)
     CREATE TABLE IF NOT EXISTS trial_reminders (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id VARCHAR(255) NOT NULL,
@@ -246,7 +248,6 @@ async function initializeSchema() {
         INDEX idx_user_server (user_id, server_id)
     );
 
-    -- GTA 6 Leaks Database
     CREATE TABLE IF NOT EXISTS gta6_leaks (
         id INT AUTO_INCREMENT PRIMARY KEY,
         leak_title VARCHAR(255) NOT NULL,
@@ -261,7 +262,6 @@ async function initializeSchema() {
         INDEX idx_verified (verified)
     );
 
-    -- GTA 6 News Cache
     CREATE TABLE IF NOT EXISTS gta6_news (
         id INT AUTO_INCREMENT PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
@@ -272,7 +272,6 @@ async function initializeSchema() {
         INDEX idx_fetched_at (fetched_at)
     );
 
-    -- User Theories
     CREATE TABLE IF NOT EXISTS user_theories (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id VARCHAR(255) NOT NULL,
@@ -286,7 +285,6 @@ async function initializeSchema() {
         INDEX idx_credibility_votes (credibility_votes)
     );
 
-    -- Theory Connections
     CREATE TABLE IF NOT EXISTS theory_connections (
         id INT AUTO_INCREMENT PRIMARY KEY,
         theory1_id INT NOT NULL,
@@ -296,7 +294,6 @@ async function initializeSchema() {
         UNIQUE KEY unique_connection (theory1_id, theory2_id)
     );
 
-    -- Server Hype Meter History
     CREATE TABLE IF NOT EXISTS hype_meter (
         id INT AUTO_INCREMENT PRIMARY KEY,
         server_id VARCHAR(255) NOT NULL,
@@ -306,7 +303,6 @@ async function initializeSchema() {
         INDEX idx_recorded_at (recorded_at)
     );
 
-    -- Time Capsule Predictions
     CREATE TABLE IF NOT EXISTS time_capsules (
         id INT AUTO_INCREMENT PRIMARY KEY,
         server_id VARCHAR(255) NOT NULL,
@@ -319,7 +315,6 @@ async function initializeSchema() {
         INDEX idx_unseals_at (unseals_at)
     );
 
-    -- Error Logging
     CREATE TABLE IF NOT EXISTS error_logs (
         id INT AUTO_INCREMENT PRIMARY KEY,
         error_message TEXT,
@@ -331,13 +326,6 @@ async function initializeSchema() {
         INDEX idx_created_at (created_at),
         INDEX idx_command_name (command_name)
     );
-
-    -- Performance Indexes
-    CREATE INDEX IF NOT EXISTS idx_xp_level ON user_xp(server_id, level);
-    CREATE INDEX IF NOT EXISTS idx_economy_balance ON user_economy(server_id, balance);
-    CREATE INDEX IF NOT EXISTS idx_sub_tier_active ON subscriptions(tier, active);
-    CREATE INDEX IF NOT EXISTS idx_logs_date_range ON mod_logs(server_id, created_at);
-    CREATE INDEX IF NOT EXISTS idx_leaks_recent ON gta6_leaks(created_at, credibility_score);
   `;
   
   try {

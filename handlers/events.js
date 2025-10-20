@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════
- * EVENTS HANDLER - Message Listening and Response
+ * EVENTS HANDLER - Message Listening and Slash Commands
  * ═══════════════════════════════════════════════════════════════
  */
 
@@ -14,7 +14,47 @@ const openai = new OpenAI({
 module.exports = (client) => {
   console.log('👂 Loading event handlers...');
   
-  // Listen for messages
+  // ═══════════════════════════════════════════════════════════════
+  // SLASH COMMAND HANDLER
+  // ═══════════════════════════════════════════════════════════════
+  
+  client.on('interactionCreate', async (interaction) => {
+    // Only handle slash commands for now
+    if (!interaction.isCommand()) return;
+    
+    // Get the command from client.commands collection
+    const command = client.commands.get(interaction.commandName);
+    
+    if (!command) {
+      console.log(`⚠️  Command not found: ${interaction.commandName}`);
+      return;
+    }
+    
+    try {
+      console.log(`📝 Executing command: /${interaction.commandName} by ${interaction.user.tag}`);
+      await command.execute(interaction);
+    } catch (error) {
+      console.error(`❌ Error executing command ${interaction.commandName}:`, error);
+      
+      // Reply with error (handle already replied)
+      if (interaction.replied) {
+        await interaction.followUp({
+          content: '❌ There was an error executing this command!',
+          ephemeral: true
+        }).catch(() => {});
+      } else {
+        await interaction.reply({
+          content: '❌ There was an error executing this command!',
+          ephemeral: true
+        }).catch(() => {});
+      }
+    }
+  });
+  
+  // ═══════════════════════════════════════════════════════════════
+  // MESSAGE CREATE HANDLER (for mentions)
+  // ═══════════════════════════════════════════════════════════════
+  
   client.on('messageCreate', async (message) => {
     // Ignore bot messages
     if (message.author.bot) return;
