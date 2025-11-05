@@ -7,18 +7,23 @@ module.exports = {
   
   async execute(interaction) {
     try {
-      // Defer reply immediately (this will take 2-3 minutes)
+      // Defer reply immediately
       await interaction.deferReply();
       
       const guild = interaction.guild;
       
+      console.log('\n' + '='.repeat(60));
+      console.log('🔮 ORACLE SETUP COMMAND STARTED');
+      console.log('='.repeat(60));
+      console.log(`Server: ${guild.name} (${guild.id})\n`);
+
       // ===== STEP 1: Check if already setup =====
-      console.log('\n🔍 STEP 1: Checking if server already setup...');
+      console.log('🔍 STEP 1: Checking if server already setup...');
       const setupChannel = guild.channels.cache.find(c => c.name === 'welcome');
       if (setupChannel) {
-        console.log('⚠️  Server already has setup channels detected');
+        console.log('⚠️  Server already has setup channels detected\n');
         await interaction.editReply({
-          content: '❌ This server is already set up! Use `/setup reset` to re-run setup.',
+          content: '❌ This server is already set up! Use `/setupreset` to clear everything and try again.',
         });
         return;
       }
@@ -32,7 +37,7 @@ module.exports = {
       const missingPerms = requiredPerms.filter(perm => !botPermissions.has(perm));
       
       if (missingPerms.length > 0) {
-        console.log('❌ Bot missing permissions:', missingPerms);
+        console.log('❌ Bot missing permissions:', missingPerms.join(', '), '\n');
         await interaction.editReply({
           content: `❌ I'm missing permissions: ${missingPerms.join(', ')}\nPlease give me Administrator role and try again.`
         });
@@ -40,44 +45,59 @@ module.exports = {
       }
       console.log('✅ Bot has all required permissions\n');
 
-      await interaction.editReply('⏳ Starting setup... This will take 2-3 minutes. Creating structure now...');
+      await interaction.editReply('⏳ Starting setup... Creating roles, categories, and channels (2-3 minutes)...');
 
-      // ===== STEP 3: Map existing roles by ID =====
-      console.log('👥 STEP 3: Mapping existing roles...');
-      const rolesMap = {
-        Owner: '1371000779732684841',
-        Admin: '1371094117676875826',
-        SeniorModerator: '1371094789281550357',
-        Moderator: '1371094153848426577',
-        ServerDesigner: '1371877712377020586',
-        SupportTeam: '1371094051134373898',
-        ServerBooster: '1370886448819081249',
-        Member: '1371093637055643669',
-        RPLegend: '1371093923887583332',
-        Overachiever: '1373296746788032665',
-        SpeedDemon: '1371093887963365416',
-        HeistMastermind: '1371095307642736650',
-        HeistMaster: '1371093811043897426',
-        Bosssman: '1371093687211397222',
-      };
+      // ===== STEP 3: Create all roles =====
+      console.log('👥 STEP 3: Creating/verifying all roles...\n');
+      const rolesMap = {};
 
-      // Verify roles exist
-      let missingRoles = [];
-      for (const [roleName, roleId] of Object.entries(rolesMap)) {
-        const role = guild.roles.cache.get(roleId);
-        if (!role) {
-          missingRoles.push(`${roleName} (${roleId})`);
-          console.warn(`⚠️  Role not found: ${roleName} (${roleId})`);
+      const rolesToCreate = [
+        { name: 'Owner', color: 0xFF0000, hoist: true },
+        { name: 'Admin', color: 0xFF6B6B, hoist: true },
+        { name: 'Senior Moderator', color: 0xFFAA00, hoist: true },
+        { name: 'Moderator', color: 0xFFD700, hoist: true },
+        { name: 'Server Designer', color: 0x0099FF, hoist: false },
+        { name: 'Support Team', color: 0x00FF00, hoist: false },
+        { name: 'Server Booster', color: 0xA020F0, hoist: true },
+        { name: 'Member', color: 0x808080, hoist: false },
+        { name: 'RP Legend', color: 0xFFD700, hoist: true },
+        { name: 'Overachiever', color: 0x00FFFF, hoist: true },
+        { name: 'Speed Demon', color: 0xFF0000, hoist: true },
+        { name: 'Heist Mastermind', color: 0x0099FF, hoist: true },
+        { name: 'Heist Master', color: 0xFFAA00, hoist: true },
+        { name: 'Bosssman', color: 0xFF6B6B, hoist: true }
+      ];
+
+      let createdRoles = 0;
+      let foundRoles = 0;
+
+      for (const roleData of rolesToCreate) {
+        try {
+          let role = guild.roles.cache.find(r => r.name === roleData.name);
+          
+          if (!role) {
+            role = await guild.roles.create({
+              name: roleData.name,
+              color: roleData.color,
+              hoist: roleData.hoist,
+              mentionable: true
+            });
+            createdRoles++;
+            console.log(`   ✅ Created role: ${roleData.name}`);
+          } else {
+            foundRoles++;
+            console.log(`   ℹ️  Found existing role: ${roleData.name}`);
+          }
+          
+          rolesMap[roleData.name] = role.id;
+        } catch (error) {
+          console.error(`   ❌ Failed to create role ${roleData.name}: ${error.message}`);
         }
       }
-      if (missingRoles.length > 0) {
-        console.log(`⚠️  ${missingRoles.length} roles missing. Permissions may not work correctly.\n`);
-      } else {
-        console.log('✅ All roles verified\n');
-      }
+      console.log(`\n   Summary: Created ${createdRoles} roles, Found ${foundRoles} existing roles\n`);
 
       // ===== STEP 4: Create Premium Member role =====
-      console.log('👑 STEP 4: Creating/finding Premium Member role...');
+      console.log('👑 STEP 4: Creating/verifying Premium Member role...');
       let premiumRole = guild.roles.cache.find(r => r.name === 'Premium Member');
       
       if (!premiumRole) {
@@ -89,16 +109,16 @@ module.exports = {
             mentionable: true,
             position: 2
           });
-          console.log('✅ Premium Member role created\n');
+          console.log('   ✅ Premium Member role created\n');
         } catch (error) {
-          console.error(`❌ Failed to create Premium Member role: ${error.message}\n`);
+          console.error(`   ❌ Failed to create Premium Member role: ${error.message}\n`);
         }
       } else {
-        console.log('✅ Premium Member role already exists\n');
+        console.log('   ℹ️  Premium Member role already exists\n');
       }
       
       if (premiumRole) {
-        rolesMap.PremiumMember = premiumRole.id;
+        rolesMap['Premium Member'] = premiumRole.id;
       }
 
       // ===== STEP 5: Define server structure =====
@@ -256,10 +276,10 @@ module.exports = {
                   });
 
                   const modsRoles = [
-                    { id: rolesMap.Owner, name: 'Owner' },
-                    { id: rolesMap.Admin, name: 'Admin' },
-                    { id: rolesMap.SeniorModerator, name: 'Senior Moderator' },
-                    { id: rolesMap.Moderator, name: 'Moderator' }
+                    { id: rolesMap['Owner'], name: 'Owner' },
+                    { id: rolesMap['Admin'], name: 'Admin' },
+                    { id: rolesMap['Senior Moderator'], name: 'Senior Moderator' },
+                    { id: rolesMap['Moderator'], name: 'Moderator' }
                   ];
 
                   for (const role of modsRoles) {
@@ -284,10 +304,10 @@ module.exports = {
                   });
 
                   const premiumRoles = [
-                    { id: rolesMap.Owner, name: 'Owner' },
-                    { id: rolesMap.Admin, name: 'Admin' },
-                    { id: rolesMap.Moderator, name: 'Moderator' },
-                    { id: rolesMap.PremiumMember, name: 'Premium Member' }
+                    { id: rolesMap['Owner'], name: 'Owner' },
+                    { id: rolesMap['Admin'], name: 'Admin' },
+                    { id: rolesMap['Moderator'], name: 'Moderator' },
+                    { id: rolesMap['Premium Member'], name: 'Premium Member' }
                   ];
 
                   for (const role of premiumRoles) {
@@ -426,22 +446,24 @@ module.exports = {
       // ===== STEP 8: Final summary and completion =====
       console.log('\n🎉 SETUP COMPLETE!\n');
       console.log(`📊 FINAL SUMMARY:`);
+      console.log(`   ✅ Roles created: ${createdRoles}`);
+      console.log(`   ✅ Roles found: ${foundRoles}`);
       console.log(`   ✅ Categories created: ${createdCategories}/12`);
       console.log(`   ✅ Channels created: ${createdChannels}/${totalChannels}`);
-      console.log(`   ✅ Premium Member role: ${premiumRole ? 'Created' : 'Not created'}`);
       console.log(`   ✅ Embeds posted: 3`);
-      console.log(`   ⚠️  Missing roles: ${missingRoles.length}`);
-      console.log('');
+      console.log('\n' + '='.repeat(60) + '\n');
 
       const completionEmbed = new EmbedBuilder()
         .setColor(0x00FF00)
         .setTitle('✅ Setup Complete!')
         .setDescription('Your GTA 6 Dominion server is now fully configured.')
         .addFields(
-          { name: '📁 Categories Created', value: `${createdCategories}/12`, inline: true },
+          { name: '👥 Roles Created', value: `${createdRoles}`, inline: true },
+          { name: '👥 Roles Found', value: `${foundRoles}`, inline: true },
+          { name: '📁 Categories', value: `${createdCategories}/12`, inline: true },
           { name: '📝 Channels Created', value: `${createdChannels}/${totalChannels}`, inline: true },
-          { name: '👥 Roles', value: 'Premium Member + 14 existing roles', inline: true },
-          { name: '📋 Embeds Posted', value: '3 embeds to key channels', inline: false }
+          { name: '📋 Embeds Posted', value: '3 embeds', inline: true },
+          { name: '⚡ Status', value: 'Ready to use!', inline: true }
         )
         .setFooter({ text: '⚡ Powered by Peksity' })
         .setTimestamp();
