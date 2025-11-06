@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, ChannelType } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -19,48 +19,54 @@ module.exports = {
     let chans = 0;
     let roles = 0;
 
-    // Delete categories
-    const catNames = ['SUPPORT LINE', 'MODERATOR AREA', 'BOT COMMANDS', 'INTRODUCTION', 'GTA VI UPDATES', 'SERVER INFORMATION', 'SERVER SUPPORT', 'INTERACTIONS', 'VOICE CHANNELS', 'LOOKING FOR GROUP (LFG)', 'ACTIVITIES', 'PREMIUM AREA'];
-    
-    for (const name of catNames) {
-      const cat = guild.channels.cache.find(c => c.isCategory && c.name === name);
-      if (cat) {
-        for (const [, ch] of cat.children.cache) {
-          try {
-            await ch.delete();
-            chans++;
-          } catch (e) {}
+    try {
+      // Delete ALL channels first (even ones not in categories)
+      const allChannels = guild.channels.cache.filter(c => !c.isCategory());
+      for (const [, ch] of allChannels) {
+        try {
+          await ch.delete();
+          chans++;
+        } catch (e) {
+          console.log(`Failed to delete channel: ${e.message}`);
         }
+      }
+
+      // Delete ALL categories
+      const allCategories = guild.channels.cache.filter(c => c.isCategory());
+      for (const [, cat] of allCategories) {
         try {
           await cat.delete();
           cats++;
-        } catch (e) {}
+        } catch (e) {
+          console.log(`Failed to delete category: ${e.message}`);
+        }
       }
-    }
 
-    // Delete roles
-    const roleNames = ['Owner', 'Admin', 'Senior Moderator', 'Moderator', 'Server Designer', 'Support Team', 'Server Booster', 'Member', 'RP Legend', 'Overachiever', 'Speed Demon', 'Heist Mastermind', 'Heist Master', 'Bosssman', 'Premium Member'];
-    
-    for (const name of roleNames) {
-      const role = guild.roles.cache.find(r => r.name === name);
-      if (role) {
+      // Delete ALL roles (except @everyone)
+      const allRoles = guild.roles.cache.filter(r => r.name !== '@everyone');
+      for (const [, role] of allRoles) {
         try {
           await role.delete();
           roles++;
-        } catch (e) {}
+        } catch (e) {
+          console.log(`Failed to delete role: ${e.message}`);
+        }
       }
+
+      const embed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle('✅ Reset Complete')
+        .addFields(
+          { name: 'Categories Deleted', value: String(cats), inline: true },
+          { name: 'Channels Deleted', value: String(chans), inline: true },
+          { name: 'Roles Deleted', value: String(roles), inline: true }
+        )
+        .setFooter({ text: 'Powered by Peksity' });
+
+      await interaction.editReply({ embeds: [embed] });
+    } catch (err) {
+      console.error('Reset error:', err);
+      await interaction.editReply('❌ Reset error');
     }
-
-    const embed = new EmbedBuilder()
-      .setColor(0xFF0000)
-      .setTitle('✅ Reset Complete')
-      .addFields(
-        { name: 'Categories', value: String(cats), inline: true },
-        { name: 'Channels', value: String(chans), inline: true },
-        { name: 'Roles', value: String(roles), inline: true }
-      )
-      .setFooter({ text: 'Powered by Peksity' });
-
-    await interaction.editReply({ embeds: [embed] });
   }
 };
