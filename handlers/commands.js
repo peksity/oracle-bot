@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { Routes } = require('discord.js');
+const { Routes, REST } = require('discord.js');
 
 module.exports = async (client) => {
   console.log('\n🔧 Loading commands...\n');
@@ -63,7 +63,7 @@ module.exports = async (client) => {
     console.log('🔄 Registering commands with Discord...\n');
     const commands = Array.from(client.commands.values()).map(cmd => cmd.data.toJSON());
     
-    const rest = new (require('discord-api-types').REST)({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
     
     await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
     
@@ -72,58 +72,3 @@ module.exports = async (client) => {
     console.error('❌ Error registering commands:', error);
   }
 };
-```
-
-5. **Save it** (Ctrl+S)
-
----
-
-## 📁 STEP 2: Create Moderation Folder
-
-1. **Right-click on the `commands` folder** in VS Code sidebar
-2. **Select: "New Folder"**
-3. **Type:** `moderation`
-4. **Press Enter**
-
-Now you should have: `commands/moderation/`
-
----
-
-## 📄 STEP 3: Add 8 Moderation Commands
-
-For **each of these 8 commands**, do:
-
-1. **Right-click `moderation` folder**
-2. **Select: "New File"**
-3. **Type the name** (e.g., `warn.js`)
-4. **Copy the code** from the files I created:
-   - [warn.js](computer:///mnt/user-data/outputs/warn.js)
-   - [kick.js](computer:///mnt/user-data/outputs/kick.js)
-   - [ban.js](computer:///mnt/user-data/outputs/ban.js)
-   - [timeout.js](computer:///mnt/user-data/outputs/timeout.js)
-   - [clear.js](computer:///mnt/user-data/outputs/clear.js)
-   - [lock.js](computer:///mnt/user-data/outputs/lock.js)
-   - [unlock.js](computer:///mnt/user-data/outputs/unlock.js)
-   - [unban.js](computer:///mnt/user-data/outputs/unban.js)
-
-5. **Paste the entire code** into each new file
-6. **Save each one** (Ctrl+S)
-
----
-
-## ✅ VERIFICATION
-
-After adding all files, your folder structure should look like:
-```
-commands/
-├── setup.js
-├── setupreset.js
-├── moderation/
-│   ├── warn.js
-│   ├── kick.js
-│   ├── ban.js
-│   ├── timeout.js
-│   ├── clear.js
-│   ├── lock.js
-│   ├── unlock.js
-│   └── unban.js
