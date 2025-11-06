@@ -1,16 +1,15 @@
-const { SlashCommandBuilder, EmbedBuilder, ChannelType } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('setupreset')
-    .setDescription('🚨 Delete all setup categories, channels, and roles'),
+    .setDescription('🚨 DELETE ALL - Remove all setup data'),
   
   async execute(interaction) {
     try {
       await interaction.deferReply();
       const guild = interaction.guild;
 
-      // Check admin
       if (!interaction.member.permissions.has('Administrator')) {
         await interaction.editReply('❌ Admin only!');
         return;
@@ -19,6 +18,7 @@ module.exports = {
       let deletedCats = 0;
       let deletedChans = 0;
       let deletedRoles = 0;
+      let errors = [];
 
       // Delete categories
       const categoryNames = [
@@ -28,18 +28,26 @@ module.exports = {
       ];
 
       for (const name of categoryNames) {
-        const cat = guild.channels.cache.find(c => c.isCategory() && c.name === name);
-        if (cat) {
-          for (const [, ch] of cat.children.cache) {
-            try {
-              await ch.delete();
-              deletedChans++;
-            } catch (e) {}
-          }
-          try {
-            await cat.delete();
+        try {
+          const cat = guild.channels.cache.find(c => c.isCategory && c.name === name);
+          if (cat) {
+            // Delete channels first
+            const channels = Array.from(cat.children.cache.values());
+            for (const ch of channels) {
+              try {
+                await ch.delete().catch(() => {});
+                deletedChans++;
+              } catch (e) {
+                errors.push(`Channel ${ch.name}: ${e.message}`);
+              }
+            }
+            
+            // Then delete category
+            await cat.delete().catch(() => {});
             deletedCats++;
-          } catch (e) {}
+          }
+        } catch (e) {
+          errors.push(`Category ${name}: ${e.message}`);
         }
       }
 
@@ -52,30 +60,34 @@ module.exports = {
       ];
 
       for (const name of roleNames) {
-        const role = guild.roles.cache.find(r => r.name === name);
-        if (role) {
-          try {
-            await role.delete();
+        try {
+          const role = guild.roles.cache.find(r => r.name === name);
+          if (role) {
+            await role.delete().catch(() => {});
             deletedRoles++;
-          } catch (e) {}
+          }
+        } catch (e) {
+          errors.push(`Role ${name}: ${e.message}`);
         }
       }
 
-      // Reply
+      // Send response
       const embed = new EmbedBuilder()
         .setColor(0xFF0000)
         .setTitle('✅ Reset Complete')
         .addFields(
-          { name: 'Categories', value: `${deletedCats}`, inline: true },
-          { name: 'Channels', value: `${deletedChans}`, inline: true },
-          { name: 'Roles', value: `${deletedRoles}`, inline: true }
+          { name: '📁 Categories', value: `${deletedCats}`, inline: true },
+          { name: '📝 Channels', value: `${deletedChans}`, inline: true },
+          { name: '👥 Roles', value: `${deletedRoles}`, inline: true }
         )
         .setFooter({ text: '⚡ Powered by Peksity' });
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       console.error('Setupreset error:', error);
-      await interaction.editReply('❌ Error').catch(() => {});
+      try {
+        await interaction.editReply('❌ Error occurred');
+      } catch (e) {}
     }
   }
 };
