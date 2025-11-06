@@ -3,107 +3,79 @@ const { SlashCommandBuilder, EmbedBuilder, ChannelType } = require('discord.js')
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('setupreset')
-    .setDescription('🚨 DELETE ALL - Remove all setup data to start fresh'),
+    .setDescription('🚨 Delete all setup categories, channels, and roles'),
   
   async execute(interaction) {
     try {
       await interaction.deferReply();
-      
       const guild = interaction.guild;
-      
-      console.log('\n🚨 SETUP RESET STARTED');
 
-      // Verify admin
+      // Check admin
       if (!interaction.member.permissions.has('Administrator')) {
-        await interaction.editReply('❌ Only administrators can reset!');
+        await interaction.editReply('❌ Admin only!');
         return;
       }
 
-      console.log('✅ Admin verified\n');
+      let deletedCats = 0;
+      let deletedChans = 0;
+      let deletedRoles = 0;
 
-      // Categories to delete
-      const categoriesToDelete = [
+      // Delete categories
+      const categoryNames = [
         'SUPPORT LINE', 'MODERATOR AREA', 'BOT COMMANDS', 'INTRODUCTION',
         'GTA VI UPDATES', 'SERVER INFORMATION', 'SERVER SUPPORT', 'INTERACTIONS',
         'VOICE CHANNELS', 'LOOKING FOR GROUP (LFG)', 'ACTIVITIES', 'PREMIUM AREA'
       ];
 
-      let deletedCategories = 0;
-      let deletedChannels = 0;
-      let deletedRoles = 0;
-
-      // Delete categories and channels
-      console.log('🗑️ Deleting categories and channels...');
-      for (const categoryName of categoriesToDelete) {
-        const category = guild.channels.cache.find(c => 
-          c.type === ChannelType.GuildCategory && c.name === categoryName
-        );
-
-        if (category) {
-          // Delete channels
-          const channels = category.children.cache;
-          for (const [, channel] of channels) {
+      for (const name of categoryNames) {
+        const cat = guild.channels.cache.find(c => c.isCategory() && c.name === name);
+        if (cat) {
+          for (const [, ch] of cat.children.cache) {
             try {
-              await channel.delete();
-              deletedChannels++;
-            } catch (e) {
-              console.warn(`Failed to delete channel ${channel.name}`);
-            }
+              await ch.delete();
+              deletedChans++;
+            } catch (e) {}
           }
-          
-          // Delete category
           try {
-            await category.delete();
-            deletedCategories++;
-          } catch (e) {
-            console.warn(`Failed to delete category ${categoryName}`);
-          }
+            await cat.delete();
+            deletedCats++;
+          } catch (e) {}
         }
       }
-      console.log(`✅ Deleted ${deletedCategories} categories, ${deletedChannels} channels\n`);
 
       // Delete roles
-      console.log('🗑️ Deleting roles...');
-      const rolesToDelete = [
+      const roleNames = [
         'Owner', 'Admin', 'Senior Moderator', 'Moderator',
         'Server Designer', 'Support Team', 'Server Booster', 'Member',
         'RP Legend', 'Overachiever', 'Speed Demon', 'Heist Mastermind',
         'Heist Master', 'Bosssman', 'Premium Member'
       ];
 
-      for (const roleName of rolesToDelete) {
-        const role = guild.roles.cache.find(r => r.name === roleName);
+      for (const name of roleNames) {
+        const role = guild.roles.cache.find(r => r.name === name);
         if (role) {
           try {
             await role.delete();
             deletedRoles++;
-          } catch (e) {
-            console.warn(`Failed to delete role ${roleName}`);
-          }
+          } catch (e) {}
         }
       }
-      console.log(`✅ Deleted ${deletedRoles} roles\n`);
 
-      // Send summary
+      // Reply
       const embed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('✅ Reset Complete!')
+        .setTitle('✅ Reset Complete')
         .addFields(
-          { name: '📁 Categories', value: `${deletedCategories}/12`, inline: true },
-          { name: '📝 Channels', value: `${deletedChannels}`, inline: true },
-          { name: '👥 Roles', value: `${deletedRoles}/15`, inline: true },
-          { name: '🚀 Next', value: 'Run `/setup` to recreate everything!', inline: false }
+          { name: 'Categories', value: `${deletedCats}`, inline: true },
+          { name: 'Channels', value: `${deletedChans}`, inline: true },
+          { name: 'Roles', value: `${deletedRoles}`, inline: true }
         )
         .setFooter({ text: '⚡ Powered by Peksity' });
 
       await interaction.editReply({ embeds: [embed] });
-      console.log('🎉 Reset complete!\n');
-
     } catch (error) {
-      console.error('❌ Reset error:', error.message);
-      await interaction.editReply({
-        content: `❌ Error: ${error.message}`
-      }).catch(() => {});
+      console.error('Setupreset error:', error);
+      await interaction.editReply('❌ Error').catch(() => {});
     }
   }
 };
