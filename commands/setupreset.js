@@ -77,19 +77,43 @@ module.exports = {
         }
       }
 
-      // Step 4: Delete Premium Member role
-      console.log('🚨 STEP 2: Deleting Premium Member role...\n');
-      try {
-        const premiumRole = guild.roles.cache.find(r => r.name === 'Premium Member');
-        if (premiumRole) {
-          await premiumRole.delete();
-          console.log('✅ Premium Member role deleted\n');
-        } else {
-          console.log('⏭️  Premium Member role not found\n');
+      // Step 4: Delete all roles created by setup
+      console.log('🚨 STEP 2: Deleting all setup roles...\n');
+      
+      const rolesToDelete = [
+        'Owner',
+        'Admin',
+        'Senior Moderator',
+        'Moderator',
+        'Server Designer',
+        'Support Team',
+        'Server Booster',
+        'Member',
+        'RP Legend',
+        'Overachiever',
+        'Speed Demon',
+        'Heist Mastermind',
+        'Heist Master',
+        'Bosssman',
+        'Premium Member'
+      ];
+
+      let deletedRoles = 0;
+
+      for (const roleName of rolesToDelete) {
+        try {
+          const role = guild.roles.cache.find(r => r.name === roleName);
+          if (role) {
+            await role.delete();
+            console.log(`   ✅ Deleted role: ${roleName}`);
+            deletedRoles++;
+          }
+        } catch (error) {
+          console.warn(`   ⚠️  Could not delete role ${roleName}: ${error.message}`);
         }
-      } catch (error) {
-        console.error(`❌ Failed to delete Premium Member role: ${error.message}\n`);
       }
+
+      console.log(`\n✅ Deleted ${deletedRoles}/15 roles\n`);
 
       // Step 5: Summary
       console.log('===================================');
@@ -97,18 +121,18 @@ module.exports = {
       console.log(`📊 SUMMARY:`);
       console.log(`   ✅ Categories deleted: ${deletedCategories}/12`);
       console.log(`   ✅ Channels deleted: ${deletedChannels}`);
-      console.log(`   ✅ Premium Member role: Deleted`);
+      console.log(`   ✅ Roles deleted: ${deletedRoles}/15`);
       console.log(`\n⚡ You can now run /setup again to create fresh!\n`);
 
       // Reply to user
       const resetEmbed = {
         color: 0xFF0000,
         title: '✅ Setup Reset Complete!',
-        description: 'All categories, channels, and the Premium Member role have been deleted.',
+        description: 'All categories, channels, and roles have been deleted.',
         fields: [
           { name: '📁 Categories Deleted', value: `${deletedCategories}/12`, inline: true },
           { name: '📝 Channels Deleted', value: `${deletedChannels}`, inline: true },
-          { name: '👥 Premium Role', value: 'Deleted', inline: true },
+          { name: '👥 Roles Deleted', value: `${deletedRoles}/15`, inline: true },
           { name: '🚀 Next Step', value: 'Run `/setup` to create everything fresh!', inline: false }
         ],
         footer: { text: '⚡ Powered by Peksity' },
