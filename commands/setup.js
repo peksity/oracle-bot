@@ -6,132 +6,83 @@ module.exports = {
     .setDescription('Set up the complete GTA 6 Dominion server structure with categories, channels, and roles'),
   
   async execute(interaction) {
+    // Defer reply (this will take 2-3 minutes)
+    await interaction.deferReply({ ephemeral: false });
+
     try {
-      // Defer reply immediately
-      await interaction.deferReply();
-      
       const guild = interaction.guild;
       
-      console.log('\n' + '='.repeat(60));
-      console.log('🔮 ORACLE SETUP COMMAND STARTED');
-      console.log('='.repeat(60));
-      console.log(`Server: ${guild.name} (${guild.id})\n`);
-
-      // ===== STEP 1: Check if already setup =====
-      console.log('🔍 STEP 1: Checking if server already setup...');
+      // Step 1: Check if already setup
+      console.log('🔍 Checking if server already setup...');
       const setupChannel = guild.channels.cache.find(c => c.name === 'welcome');
       if (setupChannel) {
-        console.log('⚠️  Server already has setup channels detected\n');
         await interaction.editReply({
-          content: '❌ This server is already set up! Use `/setupreset` to clear everything and try again.',
+          content: '❌ This server is already set up! Use `/setup reset` to re-run setup.',
+          ephemeral: true
         });
         return;
       }
-      console.log('✅ Server is clean, proceeding with setup\n');
 
-      // ===== STEP 2: Verify bot permissions =====
-      console.log('🔐 STEP 2: Verifying bot permissions...');
-      const botMember = guild.members.me;
-      const botPermissions = botMember.permissions;
+      // Step 2: Verify bot permissions
+      const botPermissions = guild.members.me.permissions;
       const requiredPerms = ['ManageChannels', 'ManageRoles', 'SendMessages', 'ManageMessages'];
       const missingPerms = requiredPerms.filter(perm => !botPermissions.has(perm));
       
       if (missingPerms.length > 0) {
-        console.log('❌ Bot missing permissions:', missingPerms.join(', '), '\n');
         await interaction.editReply({
           content: `❌ I'm missing permissions: ${missingPerms.join(', ')}\nPlease give me Administrator role and try again.`
         });
         return;
       }
-      console.log('✅ Bot has all required permissions\n');
 
-      await interaction.editReply('⏳ Starting setup... Creating roles, categories, and channels (2-3 minutes)...');
+      await interaction.editReply('⏳ Starting server setup... This will take 2-3 minutes. Please be patient!');
 
-      // ===== STEP 3: Create all roles =====
-      console.log('👥 STEP 3: Creating/verifying all roles...\n');
-      const rolesMap = {};
+      // Step 3: Map existing roles by ID
+      const rolesMap = {
+        Owner: '1371000779732684841',
+        Admin: '1371094117676875826',
+        SeniorModerator: '1371094789281550357',
+        Moderator: '1371094153848426577',
+        ServerDesigner: '1371877712377020586',
+        SupportTeam: '1371094051134373898',
+        ServerBooster: '1370886448819081249',
+        Member: '1371093637055643669',
+        RPLegend: '1371093923887583332',
+        Overachiever: '1373296746788032665',
+        SpeedDemon: '1371093887963365416',
+        HeistMastermind: '1371095307642736650',
+        HeistMaster: '1371093811043897426',
+        Bosssman: '1371093687211397222',
+      };
 
-      const rolesToCreate = [
-        { name: 'Owner', color: 0xFF0000, hoist: true },
-        { name: 'Admin', color: 0xFF6B6B, hoist: true },
-        { name: 'Senior Moderator', color: 0xFFAA00, hoist: true },
-        { name: 'Moderator', color: 0xFFD700, hoist: true },
-        { name: 'Server Designer', color: 0x0099FF, hoist: false },
-        { name: 'Support Team', color: 0x00FF00, hoist: false },
-        { name: 'Server Booster', color: 0xA020F0, hoist: true },
-        { name: 'Member', color: 0x808080, hoist: false },
-        { name: 'RP Legend', color: 0xFFD700, hoist: true },
-        { name: 'Overachiever', color: 0x00FFFF, hoist: true },
-        { name: 'Speed Demon', color: 0xFF0000, hoist: true },
-        { name: 'Heist Mastermind', color: 0x0099FF, hoist: true },
-        { name: 'Heist Master', color: 0xFFAA00, hoist: true },
-        { name: 'Bosssman', color: 0xFF6B6B, hoist: true }
-      ];
-
-      let createdRoles = 0;
-      let foundRoles = 0;
-
-      for (const roleData of rolesToCreate) {
-        try {
-          let role = guild.roles.cache.find(r => r.name === roleData.name);
-          
-          if (!role) {
-            role = await guild.roles.create({
-              name: roleData.name,
-              color: roleData.color,
-              hoist: roleData.hoist,
-              mentionable: true
-            });
-            createdRoles++;
-            console.log(`   ✅ Created role: ${roleData.name}`);
-          } else {
-            foundRoles++;
-            console.log(`   ℹ️  Found existing role: ${roleData.name}`);
-          }
-          
-          rolesMap[roleData.name] = role.id;
-        } catch (error) {
-          console.error(`   ❌ Failed to create role ${roleData.name}: ${error.message}`);
-        }
-      }
-      console.log(`\n   Summary: Created ${createdRoles} roles, Found ${foundRoles} existing roles\n`);
-
-      // ===== STEP 4: Create Premium Member role =====
-      console.log('👑 STEP 4: Creating/verifying Premium Member role...');
+      // Step 4: Get or create Premium Member role
+      console.log('👑 Creating Premium Member role...');
       let premiumRole = guild.roles.cache.find(r => r.name === 'Premium Member');
       
       if (!premiumRole) {
-        try {
-          premiumRole = await guild.roles.create({
-            name: 'Premium Member',
-            color: 0xFFD700,
-            hoist: true,
-            mentionable: true,
-            position: 2
-          });
-          console.log('   ✅ Premium Member role created\n');
-        } catch (error) {
-          console.error(`   ❌ Failed to create Premium Member role: ${error.message}\n`);
-        }
-      } else {
-        console.log('   ℹ️  Premium Member role already exists\n');
+        premiumRole = await guild.roles.create({
+          name: 'Premium Member',
+          color: 0xFFD700,
+          hoist: true,
+          mentionable: true,
+          position: 2
+        });
+        console.log('✅ Premium Member role created');
       }
-      
-      if (premiumRole) {
-        rolesMap['Premium Member'] = premiumRole.id;
-      }
+      rolesMap.PremiumMember = premiumRole.id;
 
-      // ===== STEP 5: Define server structure =====
-      console.log('📐 STEP 5: Defining server structure...');
+      // Step 5: Category and channel structure
       const serverStructure = [
         {
           name: 'SUPPORT LINE',
+          icon: '📧',
           channels: [
             { name: 'modmail-log', type: 'text', modsOnly: true }
           ]
         },
         {
           name: 'MODERATOR AREA',
+          icon: '🛡️',
           channels: [
             { name: 'moderation-logs', type: 'text', modsOnly: true },
             { name: 'unban-unmute-form', type: 'text', modsOnly: true },
@@ -144,12 +95,12 @@ module.exports = {
         },
         {
           name: 'BOT COMMANDS',
+          icon: '🤖',
           channels: [
             { name: 'mod-command', type: 'text', modsOnly: true },
             { name: 'ban-unban-logs', type: 'text', modsOnly: true },
             { name: 'join-logs', type: 'text', modsOnly: true },
             { name: 'leave-logs', type: 'text', modsOnly: true },
-            { name: 'dyno-messages', type: 'text', modsOnly: true },
             { name: 'role-assign', type: 'text', modsOnly: true },
             { name: 'deleted-logs', type: 'text', modsOnly: true },
             { name: 'muted-unmute-log', type: 'text', modsOnly: true },
@@ -162,12 +113,14 @@ module.exports = {
         },
         {
           name: 'INTRODUCTION',
+          icon: '👋',
           channels: [
             { name: 'welcome', type: 'text', public: true }
           ]
         },
         {
           name: 'GTA VI UPDATES',
+          icon: '📰',
           channels: [
             { name: 'official-news', type: 'text', public: true },
             { name: 'rockstar-updates', type: 'text', public: true },
@@ -176,10 +129,10 @@ module.exports = {
         },
         {
           name: 'SERVER INFORMATION',
+          icon: '📋',
           channels: [
             { name: 'rules', type: 'text', public: true },
             { name: 'announcements', type: 'text', public: true },
-            { name: 'how-to-get-tag', type: 'text', public: true },
             { name: 'perks-and-rewards', type: 'text', public: true },
             { name: 'server-rank', type: 'text', public: true },
             { name: 'boosts', type: 'text', public: true }
@@ -187,6 +140,7 @@ module.exports = {
         },
         {
           name: 'SERVER SUPPORT',
+          icon: '🎫',
           channels: [
             { name: 'tickets', type: 'text', public: true },
             { name: 'tickets-transcripts', type: 'text', modsOnly: true }
@@ -194,6 +148,7 @@ module.exports = {
         },
         {
           name: 'INTERACTIONS',
+          icon: '💬',
           channels: [
             { name: 'chat', type: 'text', public: true },
             { name: 'gta-online', type: 'text', public: true },
@@ -204,6 +159,7 @@ module.exports = {
         },
         {
           name: 'VOICE CHANNELS',
+          icon: '🎤',
           channels: [
             { name: 'Staff VC', type: 'voice', modsOnly: true },
             { name: 'Voice Channel 1', type: 'voice', public: true },
@@ -214,14 +170,17 @@ module.exports = {
         },
         {
           name: 'LOOKING FOR GROUP (LFG)',
+          icon: '🔍',
           channels: []
         },
         {
           name: 'ACTIVITIES',
+          icon: '🎮',
           channels: []
         },
         {
           name: 'PREMIUM AREA',
+          icon: '⭐',
           channels: [
             { name: 'premium-commands', type: 'text', premiumOnly: true },
             { name: 'premium-chat', type: 'text', premiumOnly: true },
@@ -230,18 +189,19 @@ module.exports = {
         }
       ];
 
-      const totalChannels = serverStructure.reduce((sum, cat) => sum + cat.channels.length, 0);
-      console.log(`✅ Defined 12 categories with ${totalChannels} total channels\n`);
-
-      // ===== STEP 6: Create categories and channels =====
-      console.log('📁 STEP 6: Creating categories and channels...\n');
-      let createdCategories = 0;
+      // Step 5: Create categories and channels
+      console.log('📁 Creating categories and channels...');
+      let totalChannels = 0;
       let createdChannels = 0;
+
+      // Count total for progress
+      serverStructure.forEach(cat => {
+        totalChannels += cat.channels.length;
+      });
 
       for (const categoryData of serverStructure) {
         try {
-          console.log(`📍 Creating category: ${categoryData.name}`);
-          
+          console.log(`\n📍 Starting category: ${categoryData.name}`);
           // Create category
           const category = await guild.channels.create({
             name: categoryData.name,
@@ -251,130 +211,127 @@ module.exports = {
               deny: ['ViewChannel']
             }]
           });
-          createdCategories++;
-          console.log(`   ✅ Category created`);
+          console.log(`✅ Category created: ${categoryData.name}`);
 
-          // Create channels in this category
+          // Create channels in category
           for (const channelData of categoryData.channels) {
             try {
-              console.log(`   → Creating ${channelData.type} channel: ${channelData.name}`);
-              
-              // Create channel
+              console.log(`  → Creating channel: ${channelData.name}...`);
               const channel = await guild.channels.create({
-                name: channelData.name,
+                name: `${channelData.type === 'voice' ? '🔊' : ''} ${channelData.name}`,
                 type: channelData.type === 'voice' ? ChannelType.GuildVoice : ChannelType.GuildText,
                 parent: category.id,
                 topic: `${categoryData.name} - ${channelData.name}`
               });
 
-              // Set permissions based on channel type
+              // Set permissions
+              console.log(`  → Setting permissions for ${channelData.name}...`);
               if (channelData.modsOnly) {
-                // MOD-ONLY: Hide from everyone except mods/admins
+                // Mods only - hide from everyone
                 try {
                   await channel.permissionOverwrites.create(guild.id, {
                     ViewChannel: false
                   });
 
-                  const modsRoles = [
-                    { id: rolesMap['Owner'], name: 'Owner' },
-                    { id: rolesMap['Admin'], name: 'Admin' },
-                    { id: rolesMap['Senior Moderator'], name: 'Senior Moderator' },
-                    { id: rolesMap['Moderator'], name: 'Moderator' }
+                  // Allow mods/admins
+                  const rolesToAllow = [
+                    { id: rolesMap.Admin, name: 'Admin' },
+                    { id: rolesMap.Moderator, name: 'Moderator' },
+                    { id: rolesMap.SeniorModerator, name: 'Senior Moderator' },
+                    { id: rolesMap.Owner, name: 'Owner' }
                   ];
 
-                  for (const role of modsRoles) {
+                  for (const role of rolesToAllow) {
                     try {
                       await channel.permissionOverwrites.create(role.id, {
                         ViewChannel: true,
                         SendMessages: true,
                         ManageMessages: true
                       });
-                    } catch (err) {
-                      console.warn(`      ⚠️  Could not set ${role.name} permissions: ${err.message}`);
+                    } catch (error) {
+                      console.warn(`    ⚠️  Could not set permissions for ${role.name} (${role.id}): ${error.message}`);
                     }
                   }
-                } catch (err) {
-                  console.error(`      ❌ Error setting mod-only permissions: ${err.message}`);
+                } catch (error) {
+                  console.error(`    ❌ Error setting mod-only permissions: ${error.message}`);
                 }
               } else if (channelData.premiumOnly) {
-                // PREMIUM-ONLY: Hide except premium members and mods
+                // Premium only - hide from regular members
                 try {
                   await channel.permissionOverwrites.create(guild.id, {
                     ViewChannel: false
                   });
 
-                  const premiumRoles = [
-                    { id: rolesMap['Owner'], name: 'Owner' },
-                    { id: rolesMap['Admin'], name: 'Admin' },
-                    { id: rolesMap['Moderator'], name: 'Moderator' },
-                    { id: rolesMap['Premium Member'], name: 'Premium Member' }
+                  // Allow premium members and mods
+                  const rolesToAllow = [
+                    { id: rolesMap.PremiumMember, name: 'Premium Member' },
+                    { id: rolesMap.Admin, name: 'Admin' },
+                    { id: rolesMap.Moderator, name: 'Moderator' },
+                    { id: rolesMap.Owner, name: 'Owner' }
                   ];
 
-                  for (const role of premiumRoles) {
+                  for (const role of rolesToAllow) {
                     try {
                       await channel.permissionOverwrites.create(role.id, {
                         ViewChannel: true,
                         SendMessages: true
                       });
-                    } catch (err) {
-                      console.warn(`      ⚠️  Could not set ${role.name} permissions: ${err.message}`);
+                    } catch (error) {
+                      console.warn(`    ⚠️  Could not set permissions for ${role.name} (${role.id}): ${error.message}`);
                     }
                   }
-                } catch (err) {
-                  console.error(`      ❌ Error setting premium permissions: ${err.message}`);
+                } catch (error) {
+                  console.error(`    ❌ Error setting premium-only permissions: ${error.message}`);
                 }
               } else if (channelData.public) {
-                // PUBLIC: Everyone can see
-                try {
-                  await channel.permissionOverwrites.create(guild.id, {
-                    ViewChannel: true,
-                    SendMessages: true
-                  });
-                } catch (err) {
-                  console.error(`      ❌ Error setting public permissions: ${err.message}`);
-                }
+                // Public channels - visible to everyone
+                await channel.permissionOverwrites.create(guild.id, {
+                  ViewChannel: true
+                });
               }
 
-              // Always allow bot
-              try {
-                await channel.permissionOverwrites.create(guild.me.id, {
-                  ViewChannel: true,
-                  SendMessages: true,
-                  ManageMessages: true
-                });
-              } catch (err) {
-                console.warn(`      ⚠️  Could not set bot permissions: ${err.message}`);
-              }
+              // Allow bot to see all channels
+              await channel.permissionOverwrites.create(guild.me.id, {
+                ViewChannel: true,
+                SendMessages: true,
+                ManageMessages: true
+              });
 
               createdChannels++;
-              console.log(`      ✅ Channel created (${createdChannels}/${totalChannels})`);
+              console.log(`  ✅ Channel created: ${channelData.name} (${createdChannels}/${totalChannels})`);
 
             } catch (error) {
-              console.error(`   ❌ Failed to create channel ${channelData.name}: ${error.message}`);
+              console.error(`  ❌ Error creating channel ${channelData.name}: ${error.message}`);
+              console.error(`     Error code: ${error.code}`);
             }
           }
 
-          console.log('');
-
         } catch (error) {
-          console.error(`❌ Failed to create category ${categoryData.name}: ${error.message}\n`);
+          console.error(`❌ Error creating category ${categoryData.name}: ${error.message}`);
+          console.error(`   Error code: ${error.code}`);
           if (error.code === 50013) {
-            await interaction.editReply({
-              content: '❌ I don\'t have permission to create channels. Please give me Administrator role.'
+            await interaction.followUp({
+              content: '❌ I don\'t have permission to create channels. Please give me Administrator role.',
+              ephemeral: true
             });
             return;
           }
         }
       }
 
-      // ===== STEP 7: Create and post embeds =====
-      console.log('📝 STEP 7: Creating and posting embeds...');
+      console.log(`\n📊 CATEGORY/CHANNEL CREATION SUMMARY:\n` +
+                  `   Total channels created: ${createdChannels}/${totalChannels}\n` +
+                  `   Total categories requested: 12`);
+
+      // Step 6: Create and post embeds
+      console.log('📝 Creating and posting embeds...');
 
       // Welcome embed
       const welcomeEmbed = new EmbedBuilder()
         .setColor(0x5865F2)
         .setTitle('🎉 Welcome to GTA 6 Dominion!')
-        .setDescription('Hello @everyone, Make sure to checkout #rules before heading into the chatting section.')
+        .setDescription('Hello @everyone, Make sure to checkout <#rules> before heading into the chatting section.')
+        .setThumbnail('https://media.discordapp.net/attachments/1234567890/image.png') // Replace with actual image
         .setFooter({ text: '⚡ Powered by Peksity' })
         .setTimestamp();
 
@@ -412,10 +369,10 @@ module.exports = {
         .setTitle('🎁 Server Boosting Perks')
         .setDescription('Boosting the server will unlock all the perks available to our HIGHEST-TIER members.')
         .addFields(
-          { name: '🎨 Custom Role Name and Color', value: 'Submit a ticket to request Your Custom Role Name and Specify Color', inline: false },
+          { name: '🎨 Custom Role Name and Color', value: 'Submit a ticket to request Your Custom Role Name and {Specify Color}', inline: false },
           { name: '😊 Custom Emojis', value: 'Access to our exclusive custom emojis', inline: false },
           { name: '✨ Custom Stickers', value: 'Access to our exclusive custom stickers', inline: false },
-          { name: '🖼️ Image Perk', value: 'You will be able to send images in #chat', inline: false },
+          { name: '🖼️ Image Perk', value: 'You will be able to send only images in #chat', inline: false },
           { name: '📊 All Level Perks', value: 'Access to all the level perks without reaching certain level', inline: false }
         )
         .setFooter({ text: '⚡ Powered by Peksity | Thank you for boosting!' });
@@ -426,55 +383,42 @@ module.exports = {
         const rulesChannel = guild.channels.cache.find(c => c.name === 'rules');
         const perksChannel = guild.channels.cache.find(c => c.name === 'perks-and-rewards');
 
-        if (welcomeChannel) {
-          await welcomeChannel.send({ embeds: [welcomeEmbed] });
-          console.log('   ✅ Welcome embed posted');
-        }
-        if (rulesChannel) {
-          await rulesChannel.send({ embeds: [rulesEmbed] });
-          console.log('   ✅ Rules embed posted');
-        }
+        if (welcomeChannel) await welcomeChannel.send({ embeds: [welcomeEmbed] });
+        if (rulesChannel) await rulesChannel.send({ embeds: [rulesEmbed] });
         if (perksChannel) {
           await perksChannel.send({ embeds: [levelRewardsEmbed] });
           await perksChannel.send({ embeds: [boostingPerksEmbed] });
-          console.log('   ✅ Perks embeds posted');
         }
+
+        console.log('✅ All embeds posted');
       } catch (error) {
-        console.error(`❌ Error posting embeds: ${error.message}`);
+        console.error('❌ Error posting embeds:', error.message);
       }
 
-      // ===== STEP 8: Final summary and completion =====
-      console.log('\n🎉 SETUP COMPLETE!\n');
-      console.log(`📊 FINAL SUMMARY:`);
-      console.log(`   ✅ Roles created: ${createdRoles}`);
-      console.log(`   ✅ Roles found: ${foundRoles}`);
-      console.log(`   ✅ Categories created: ${createdCategories}/12`);
-      console.log(`   ✅ Channels created: ${createdChannels}/${totalChannels}`);
-      console.log(`   ✅ Embeds posted: 3`);
-      console.log('\n' + '='.repeat(60) + '\n');
-
+      // Step 7: Final message
       const completionEmbed = new EmbedBuilder()
         .setColor(0x00FF00)
         .setTitle('✅ Setup Complete!')
         .setDescription('Your GTA 6 Dominion server is now fully configured.')
         .addFields(
-          { name: '👥 Roles Created', value: `${createdRoles}`, inline: true },
-          { name: '👥 Roles Found', value: `${foundRoles}`, inline: true },
-          { name: '📁 Categories', value: `${createdCategories}/12`, inline: true },
-          { name: '📝 Channels Created', value: `${createdChannels}/${totalChannels}`, inline: true },
-          { name: '📋 Embeds Posted', value: '3 embeds', inline: true },
-          { name: '⚡ Status', value: 'Ready to use!', inline: true }
+          { name: '📁 Categories Created', value: `${serverStructure.length}`, inline: true },
+          { name: '📝 Channels Created', value: `${createdChannels}`, inline: true },
+          { name: '👥 Roles Configured', value: '8 + Premium Member', inline: true },
+          { name: '📋 Embeds Posted', value: '3 embeds to key channels', inline: false }
         )
         .setFooter({ text: '⚡ Powered by Peksity' })
         .setTimestamp();
 
       await interaction.editReply({ embeds: [completionEmbed] });
 
+      console.log('🎉 Setup completed successfully!');
+
     } catch (error) {
-      console.error('❌ SETUP FAILED:', error);
+      console.error('❌ Setup error:', error);
       await interaction.editReply({
-        content: `❌ An error occurred during setup: ${error.message}`
-      }).catch(() => {});
+        content: `❌ An unexpected error occurred during setup: ${error.message}`,
+        ephemeral: true
+      });
     }
   }
 };
